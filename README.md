@@ -72,7 +72,22 @@ uv run manipdf number input.pdf --output numbered.pdf
 
 **Convert Images to PDF:**
 ```bash
+# Individual files
 uv run manipdf to-pdf img1.jpg img2.png --output portfolio.pdf
+
+# Entire directory of images
+uv run manipdf to-pdf /path/to/images_folder --output gallery.pdf
+```
+
+### Using Absolute Paths
+You can use absolute paths to files located anywhere on your system. This is particularly useful when working with files in different directories.
+
+**Example with Absolute Paths (macOS/Linux):**
+```bash
+uv run manipdf to-pdf \
+  /Users/username/Downloads/photo1.jpg \
+  /Users/username/Pictures/photo2.png \
+  --output /Users/username/Documents/merged.pdf
 ```
 
 ### Graphical User Interface
