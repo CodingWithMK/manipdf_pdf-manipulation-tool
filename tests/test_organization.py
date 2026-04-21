@@ -52,3 +52,24 @@ def test_sort_pages(sample_pdf: Path, tmp_path: Path) -> None:
     with fitz.open(output) as doc:
         assert doc[0].get_text().strip() == "Page 3"
         assert doc[2].get_text().strip() == "Page 1"
+
+def test_nup_pdf(sample_pdf: Path, tmp_path: Path) -> None:
+    output = tmp_path / "nup.pdf"
+    # 2x2 n-up of a 3-page PDF should result in 1 page
+    from manipdf.core.organization import nup_pdf
+    nup_pdf(sample_pdf, 2, 2, output)
+    assert output.exists()
+    with fitz.open(output) as doc:
+        assert len(doc) == 1
+
+def test_overlay_pdf(sample_pdf: Path, tmp_path: Path) -> None:
+    output = tmp_path / "overlaid.pdf"
+    overlay_path = tmp_path / "overlay.pdf"
+    from manipdf.core.advanced import create_blank_pdf
+    create_blank_pdf(overlay_path, pages=1)
+    
+    from manipdf.core.organization import overlay_pdf
+    overlay_pdf(sample_pdf, overlay_path, output)
+    assert output.exists()
+    with fitz.open(output) as doc:
+        assert len(doc) == 3

@@ -7,16 +7,14 @@
 ### ✅ Currently Available (Core & CLI)
 - **Organization**: Merge, Split, Delete, Rotate, Extract, Sort, N-up (4-on-1, etc.), and Overlay (Stamping).
 - **Security**: AES-256 Encryption, Decryption, Text Redaction (Black-boxing), and Text Watermarking.
-- **Modification**: Intelligent Page Numbering and PDF Compression (Stream Deflation & Garbage Collection).
+- **Modification**: Find & Replace Text, Page Numbers, and PDF Compression.
 - **Conversions**: 
     - **To PDF**: Images (JPG, PNG, etc.) and Office Documents (requires LibreOffice).
     - **From PDF**: Render pages to images and extract embedded images.
-- **Advanced**: Create blank PDFs and visual PDF Comparison (Overlay mode).
+- **Advanced**: OCR Recognition (Searchable PDF), visual PDF Comparison, and Create Blank PDF.
 
 ### 🚧 In Development
 - **Graphical User Interface (GUI)**: A modern PySide6-based desktop application with a real-time PDF viewer.
-- **OCR Recognition**: Searchable PDF generation via Tesseract integration.
-- **Web-to-PDF**: High-fidelity website conversion using Playwright.
 - **Packaging**: Standalone executables for Linux/Windows/macOS via PyInstaller.
 
 ---
@@ -26,7 +24,7 @@
 ### Prerequisites
 - **Python 3.12+**
 - **LibreOffice** (Optional: required for Office-to-PDF conversions)
-- **Tesseract OCR** (Optional: required for future OCR features)
+- **Tesseract OCR** (Optional: required for OCR features)
 
 ### Using `uv` (Recommended)
 ```bash
@@ -70,6 +68,11 @@ uv run manipdf encrypt private.pdf --output protected.pdf
 uv run manipdf number input.pdf --output numbered.pdf
 ```
 
+**Find and Replace Text:**
+```bash
+uv run manipdf edit-text input.pdf --search "Old Company" --replace "New Company" --output updated.pdf
+```
+
 **Convert Images to PDF:**
 ```bash
 # Individual files
@@ -77,6 +80,11 @@ uv run manipdf to-pdf img1.jpg img2.png --output portfolio.pdf
 
 # Entire directory of images
 uv run manipdf to-pdf /path/to/images_folder --output gallery.pdf
+```
+
+**Apply OCR (Searchable PDF):**
+```bash
+uv run manipdf ocr input.pdf --output searchable.pdf
 ```
 
 ### Using Absolute Paths

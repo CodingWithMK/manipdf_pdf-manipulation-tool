@@ -5,25 +5,22 @@ All notable changes to this project will be documented in this file.
 ## [0.1.0] - 2026-04-13
 
 ### Added
-- **Project Scaffolding**: Initialized with `uv`, directory structure established (`core`, `cli`, `gui`).
-- **Core Organization Module**: Implemented `merge`, `split`, `delete`, `rotate`, `extract`, `sort`, `n-up`, and `overlay`.
-- **Core Security Module**: Implemented `encrypt`, `decrypt`, `redact`, and `watermark`.
-- **Core Modification Module**: Implemented `add_page_numbers` and `compress_pdf`.
-- **Core Conversions Module**: Implemented `images_to_pdf`, `pdf_to_images`, `extract_images_from_pdf`, and `office_to_pdf`.
-- **Core Advanced Module**: Implemented `create_blank_pdf` and `compare_pdfs`.
-- **CLI Adapter**: Fully functional `Typer` CLI with 15+ commands and `Rich` progress indicators.
-- **GUI Adapter**: Initial scaffolding for `PySide6` interface with sidebar navigation.
-- **Testing**: 15 unit tests covering core logic across all modules.
+- **Recursive Directory Support**: The `to-pdf` command now automatically expands directories to collect and sort image files.
+- **Local OCR Support**: Integrated `pytesseract` for searchable PDF generation in the Advanced module.
+- **Find & Replace**: Implemented `edit-text` command for local text manipulation within PDFs.
+- **CLI Robustness**: Added explicit file existence validation across all 15+ CLI commands with clear error reporting.
+- **Extended Testing**: Increased test suite to 28+ tests, including new `test_cli.py` and `test_advanced.py`.
+- **Phase 5 Planning**: Published an extensive GUI implementation plan with modern red-accented design and asynchronous architecture.
 
 ### Changed
-- Consolidated CLI and GUI entry points into a single `manipdf` command. 
-- The GUI can now be launched via `manipdf gui`.
-- Refactored `add_page_numbers` to use `insert_textbox` for better alignment control.
-- Updated `ruff` configuration to ignore `B008` (Typer parameter pattern).
+- **Strict Locality Enforcement**: Removed `playwright` dependency and Web-to-PDF functionality to ensure 100% offline operation.
+- **Documentation**: Revamped `README.md` with absolute path examples and directory conversion guides.
+- **CLI Polish**: Added `Rich` status indicators to all organization and modification commands.
+
+### Fixed
+- Resolved `AttributeError` in the core redaction logic (`add_redact_annot`).
 
 ### Planned
-- **Phase 5**: Complete the `PySide6` GUI panels for all core tools.
-- **Phase 5**: Implement a `QGraphicsView` based PDF viewer component for visual editing.
-- **Phase 6**: Implement `PyInstaller` build scripts for cross-platform distribution.
-- **Advanced**: Integrate `pytesseract` for high-quality OCR support.
-- **Conversions**: Integrate `playwright` for website-to-PDF functionality.
+- **Phase 5**: Implement `PySide6` GUI with dynamic System/Light/Dark themes and red-accent navigation.
+- **Phase 5**: Connect all core modules to GUI panels using a non-blocking `QThread` worker pattern.
+- **Phase 6**: Cross-platform distribution using `PyInstaller`.

@@ -96,8 +96,27 @@ def extract(
         raise typer.Exit(code=1)
 
     indices = [int(p.strip()) for p in pages.split(",")]
-    organization.extract_pages(input_path, indices, output)
+    with console.status("[bold green]Extracting pages..."):
+        organization.extract_pages(input_path, indices, output)
     console.print(f"[bold green]Extracted pages {pages} to {output}[/bold green]")
+
+@app.command()
+def sort(
+    input_path: Path = typer.Argument(..., help="Input PDF file."),
+    order: str = typer.Option(
+        ..., "--order", "-r", help="New page order (e.g., '2,0,1')."
+    ),
+    output: Path = typer.Option(..., "--output", "-o", help="Output PDF file.")
+) -> None:
+    """Sort pages based on a specific order."""
+    if not input_path.exists():
+        console.print(f"[bold red]Error: File '{input_path}' does not exist.[/bold red]")
+        raise typer.Exit(code=1)
+
+    indices = [int(p.strip()) for p in order.split(",")]
+    with console.status("[bold green]Sorting pages..."):
+        organization.sort_pages(input_path, indices, output)
+    console.print(f"[bold green]Sorted pages saved to {output}[/bold green]")
 
 @app.command()
 def nup(
@@ -227,6 +246,22 @@ def number(
     console.print(f"[bold green]Numbered PDF saved to {output}[/bold green]")
 
 @app.command()
+def edit_text(
+    input_path: Path = typer.Argument(..., help="Input PDF file."),
+    search: str = typer.Option(..., "--search", "-s", help="Text to find."),
+    replace: str = typer.Option(..., "--replace", "-r", help="Text to replace with."),
+    output: Path = typer.Option(..., "--output", "-o", help="Output PDF file.")
+) -> None:
+    """Find and replace text in a PDF (local)."""
+    if not input_path.exists():
+        console.print(f"[bold red]Error: File '{input_path}' does not exist.[/bold red]")
+        raise typer.Exit(code=1)
+
+    with console.status("[bold green]Replacing text..."):
+        count = modification.find_replace_text(input_path, search, replace, output)
+    console.print(f"[bold green]Replaced {count} instances. Saved to {output}[/bold green]")
+
+@app.command()
 def compress(
     input_path: Path = typer.Argument(..., help="Input PDF file."),
     output: Path = typer.Option(
@@ -326,6 +361,25 @@ def blank(
     advanced.create_blank_pdf(output, pages)
     msg = f"[bold green]Created {pages}-page blank PDF at {output}[/bold green]"
     console.print(msg)
+
+@app.command()
+def ocr(
+    input_path: Path = typer.Argument(..., help="Input PDF file."),
+    output: Path = typer.Option(..., "--output", "-o", help="Output OCRed PDF file."),
+    lang: str = typer.Option("eng", "--lang", "-l", help="OCR language (e.g., 'eng', 'deu').")
+) -> None:
+    """Apply OCR to a PDF to make it searchable."""
+    if not input_path.exists():
+        console.print(f"[bold red]Error: File '{input_path}' does not exist.[/bold red]")
+        raise typer.Exit(code=1)
+
+    with console.status("[bold green]Applying OCR (this may take a while)..."):
+        try:
+            advanced.ocr_pdf(input_path, output, lang)
+            console.print(f"[bold green]OCRed PDF saved to {output}[/bold green]")
+        except Exception as e:
+            console.print(f"[bold red]OCR failed: {e}[/bold red]")
+            raise typer.Exit(code=1)
 
 @app.command()
 def compare(

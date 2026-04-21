@@ -12,3 +12,8 @@ manipdf.egg-info/
 
 # Virtual environments
 .venv
+
+# docs
+docs/plans/
+docs/system/
+docs/images/
