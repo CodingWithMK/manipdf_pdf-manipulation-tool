@@ -4,7 +4,7 @@
 
 ## 🌟 Key Features
 
-### ✅ Currently Available (Core & CLI)
+### ✅ Currently Available (Core, CLI & GUI)
 - **Organization**: Merge, Split, Delete, Rotate, Extract, Sort, N-up (4-on-1, etc.), and Overlay (Stamping).
 - **Security**: AES-256 Encryption, Decryption, Text Redaction (Black-boxing), and Text Watermarking.
 - **Modification**: Find & Replace Text, Page Numbers, and PDF Compression.
@@ -14,8 +14,8 @@
 - **Advanced**: OCR Recognition (Searchable PDF), visual PDF Comparison, and Create Blank PDF.
 
 ### 🚧 In Development
-- **Graphical User Interface (GUI)**: A modern PySide6-based desktop application with a real-time PDF viewer.
 - **Packaging**: Standalone executables for Linux/Windows/macOS via PyInstaller.
+- **Visual Editing**: A real-time PDF viewer for direct page manipulation.
 
 ---
 
@@ -115,7 +115,8 @@ ManiPDF follows a **Core-Adapter** architecture:
 This decoupling ensures the core logic is highly testable and can be integrated into other workflows easily.
 
 ## 🧪 Testing
-We maintain a suite of unit tests for all core modules.
+We maintain a comprehensive suite of unit and integration tests.
 ```bash
-PYTHONPATH=src uv run pytest
+export PYTHONPATH=$PYTHONPATH:src
+uv run pytest
 ```
