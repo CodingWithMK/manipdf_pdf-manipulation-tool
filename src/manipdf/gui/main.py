@@ -1,6 +1,7 @@
 import sys
 import os
 import io
+import re
 import traceback
 from pathlib import Path
 from typing import Optional, Callable, List, Dict, Any
@@ -16,7 +17,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize, Signal, QObject, QThread, QRunnable, Slot, QThreadPool, QPropertyAnimation, QSequentialAnimationGroup, QPoint, QEasingCurve, QTimer, Property
 from PySide6.QtGui import QIcon, QColor, QPalette, QFont, QPixmap, QCursor, QPainter, QPainterPath
 
-from manipdf.core import organization, security, modification, conversions, advanced
+from manipdf.core import organization, security, modification, conversions, advanced, utils
 
 # --- Styles & Constants ---
 ACCENT_RED = "#E53935"
@@ -433,6 +434,124 @@ class SplitTab(ToolTab):
         self.file_path = None; self.drop_zone.label.setText("Drag and drop PDF files here\nor click to browse")
         self.parent_panel.show_toast(f"PDF split into directory:\n{self._task_context['out']}")
 
+class SelectiveExtractTab(ToolTab):
+    def __init__(self, parent_panel):
+        super().__init__()
+        self.parent_panel = parent_panel
+        self.file_path = None
+        self.thumbnails = []
+        
+        self.layout.addWidget(QLabel("Select specific page intervals to extract into a new document."))
+        
+        self.drop_zone = FileDropZone(multiple=False)
+        self.drop_zone.files_dropped.connect(self.load_pdf)
+        self.layout.addWidget(self.drop_zone)
+        
+        # Viewer Area
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setMinimumHeight(300)
+        self.viewer_widget = QWidget()
+        self.viewer_layout = QHBoxLayout(self.viewer_widget)
+        self.viewer_layout.setContentsMargins(10, 10, 10, 10)
+        self.viewer_layout.setSpacing(20)
+        self.viewer_layout.setAlignment(Qt.AlignLeft)
+        self.scroll_area.setWidget(self.viewer_widget)
+        self.layout.addWidget(self.scroll_area)
+        
+        # Input Area
+        input_layout = QVBoxLayout()
+        self.input_label = QLabel("Page Intervals (e.g., 1-5, 8, 11-13):")
+        input_layout.addWidget(self.input_label)
+        
+        self.intervals_input = QLineEdit()
+        self.intervals_input.setPlaceholderText("Enter ranges or page numbers...")
+        self.intervals_input.textChanged.connect(self.validate_input)
+        input_layout.addWidget(self.intervals_input)
+        self.layout.addLayout(input_layout)
+        
+        self.action_btn = QPushButton("Extract Selected Pages")
+        self.action_btn.setObjectName("PrimaryButton")
+        self.action_btn.setCursor(Qt.PointingHandCursor)
+        self.action_btn.clicked.connect(self.run)
+        self.layout.addWidget(self.action_btn, 0, Qt.AlignRight)
+
+    def load_pdf(self, paths):
+        if not paths: return
+        self.file_path = paths[0]
+        self.drop_zone.label.setText(f"Selected: {self.file_path.name}")
+        self.intervals_input.clear()
+        self.clear_viewer()
+        
+        # Load thumbnails asynchronously
+        self.run_task(self.action_btn, "Loading Viewer...", utils.get_pdf_thumbnails, self.file_path, gui_context={'mode': 'loading_thumbnails'})
+
+    def clear_viewer(self):
+        while self.viewer_layout.count():
+            item = self.viewer_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def validate_input(self, text):
+        if not text.strip():
+            self.intervals_input.setStyleSheet("")
+            return
+            
+        # Basic regex for "1-5, 8, 11-13"
+        pattern = r"^(\d+(-\d+)?)(,\s*\d+(-\d+)?)*$"
+        if re.match(pattern, text.strip()):
+            self.intervals_input.setStyleSheet("border: 1px solid #4CAF50;") # Green
+        else:
+            self.intervals_input.setStyleSheet(f"border: 1px solid {ACCENT_RED};") # Red
+
+    def run(self):
+        if not self.file_path or self._is_busy: return
+        interval_str = self.intervals_input.text().strip()
+        if not interval_str:
+            self.parent_panel.show_toast("Please enter page intervals.", "error")
+            return
+            
+        try:
+            max_pages = utils.get_page_count(self.file_path)
+            indices = utils.parse_page_intervals(interval_str, max_pages)
+        except ValueError as e:
+            self.parent_panel.show_toast(str(e), "error")
+            return
+
+        output, _ = QFileDialog.getSaveFileName(self, "Save Extracted PDF", "extracted.pdf", "PDF Files (*.pdf)")
+        if not output: return
+        
+        self.run_task(self.action_btn, "Extracting...", organization.extract_pages, self.file_path, indices, Path(output), gui_context={'out': output, 'mode': 'extracting'})
+
+    def on_task_success(self, result):
+        mode = self._task_context.get('mode')
+        if mode == 'loading_thumbnails':
+            self.display_thumbnails(result)
+        elif mode == 'extracting':
+            self.parent_panel.show_toast(f"Pages extracted successfully to:\n{self._task_context['out']}")
+
+    def display_thumbnails(self, thumbnails_data):
+        self.clear_viewer()
+        for i, data in enumerate(thumbnails_data):
+            page_container = QVBoxLayout()
+            
+            pixmap = QPixmap()
+            pixmap.loadFromData(data)
+            
+            label = QLabel()
+            label.setPixmap(pixmap.scaled(150, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            label.setFrameShape(QFrame.StyledPanel)
+            
+            page_num = QLabel(f"Page {i+1}")
+            page_num.setAlignment(Qt.AlignCenter)
+            
+            container_widget = QWidget()
+            container_layout = QVBoxLayout(container_widget)
+            container_layout.addWidget(label)
+            container_layout.addWidget(page_num)
+            
+            self.viewer_layout.addWidget(container_widget)
+
 class PageActionTab(ToolTab):
     def __init__(self, parent_panel, mode="delete"):
         super().__init__()
@@ -458,33 +577,26 @@ class PageActionTab(ToolTab):
             if not out: return
             self.run_task(self.action_btn, "Redacting...", security.redact_text, self.file_path, self.indices_input.text(), Path(out), gui_context={'out': out})
             return
-        idx = self._parse_indices(self.indices_input.text())
-        if idx is None and self.mode != "rotate":
-            self.parent_panel.show_toast("Invalid page format.", "error"); return
+        
+        try:
+            max_pages = utils.get_page_count(self.file_path)
+            sort_and_dedup = self.mode != "sort"
+            idx = utils.parse_page_intervals(self.intervals_input.text(), max_pages, sort_and_deduplicate=sort_and_dedup)
+        except Exception as e:
+            self.parent_panel.show_toast(str(e), "error")
+            return
+
+        if not idx:
+            self.parent_panel.show_toast("Invalid page format or no pages selected.", "error"); return
+            
         out, _ = QFileDialog.getSaveFileName(self, "Save", f"{self.mode}_result.pdf", "PDF (*.pdf)")
         if not out: return
         if self.mode == "rotate":
-            worker_fn, args = organization.rotate_pages, (self.file_path, {i: int(self.angle_combo.currentText()) for i in (idx if idx else [])}, Path(out))
+            worker_fn, args = organization.rotate_pages, (self.file_path, {i: int(self.angle_combo.currentText()) for i in idx}, Path(out))
         else:
             fn_map = {"delete": organization.delete_pages, "extract": organization.extract_pages, "sort": organization.sort_pages}
             worker_fn, args = fn_map[self.mode], (self.file_path, idx, Path(out))
         self.run_task(self.action_btn, "Processing...", worker_fn, *args, gui_context={'out': out})
-
-    def _parse_indices(self, text):
-        indices = []
-        try:
-            for part in text.split(','):
-                part = part.strip()
-                if not part: 
-                    continue
-                if '-' in part:
-                    s, e = map(int, part.split('-'))
-                    indices.extend(range(s-1, e))
-                else:
-                    indices.append(int(part) - 1)
-            return indices
-        except: 
-            return None
 
     def on_task_success(self, result):
         context = self._task_context.get('out', "Operation complete")
@@ -498,7 +610,7 @@ class OrganizationPanel(BasePanel):
         super().__init__("Organization", "Manage PDF pages and structure.")
         tabs = QTabWidget(); tabs.setCursor(Qt.PointingHandCursor); tabs.tabBar().setCursor(Qt.PointingHandCursor)
         tabs.addTab(MergeTab(self), "Merge"); tabs.addTab(SplitTab(self), "Split")
-        tabs.addTab(PageActionTab(self, "delete"), "Delete"); tabs.addTab(PageActionTab(self, "extract"), "Extract")
+        tabs.addTab(PageActionTab(self, "delete"), "Delete"); tabs.addTab(SelectiveExtractTab(self), "Extract")
         tabs.addTab(PageActionTab(self, "sort"), "Sort"); tabs.addTab(PageActionTab(self, "rotate"), "Rotate")
         
         nup = ToolTab()

@@ -3,7 +3,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from manipdf.core import advanced, conversions, modification, organization, security
+from manipdf.core import advanced, conversions, modification, organization, security, utils
 
 app = typer.Typer(help="ManiPDF - Local, privacy-first PDF manipulation suite.")
 console = Console()
@@ -49,7 +49,7 @@ def split(
 def delete(
     input_path: Path = typer.Argument(..., help="Input PDF file."),
     pages: str = typer.Option(
-        ..., "--pages", "-p", help="Page indices to delete (e.g., '0,2,3')."
+        ..., "--pages", "-p", help="Page intervals to delete (e.g., '1-5, 8, 11-13')."
     ),
     output: Path = typer.Option(..., "--output", "-o", help="Output PDF file.")
 ) -> None:
@@ -58,9 +58,19 @@ def delete(
         console.print(f"[bold red]Error: File '{input_path}' does not exist.[/bold red]")
         raise typer.Exit(code=1)
 
-    indices = [int(p.strip()) for p in pages.split(",")]
-    organization.delete_pages(input_path, indices, output)
-    console.print(f"[bold green]Pages {pages} deleted. Saved to {output}[/bold green]")
+    try:
+        max_pages = utils.get_page_count(input_path)
+        indices = utils.parse_page_intervals(pages, max_pages)
+        if not indices:
+            console.print("[bold yellow]No pages selected for deletion.[/bold yellow]")
+            return
+
+        with console.status("[bold green]Deleting pages..."):
+            organization.delete_pages(input_path, indices, output)
+        console.print(f"[bold green]Deleted {len(indices)} pages. Saved to {output}[/bold green]")
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise typer.Exit(code=1)
 
 @app.command()
 def rotate(
@@ -86,7 +96,7 @@ def rotate(
 def extract(
     input_path: Path = typer.Argument(..., help="Input PDF file."),
     pages: str = typer.Option(
-        ..., "--pages", "-p", help="Page indices to extract (e.g., '0,2')."
+        ..., "--pages", "-p", help="Page intervals to extract (e.g., '1-5, 8, 11-13')."
     ),
     output: Path = typer.Option(..., "--output", "-o", help="Output PDF file.")
 ) -> None:
@@ -95,16 +105,25 @@ def extract(
         console.print(f"[bold red]Error: File '{input_path}' does not exist.[/bold red]")
         raise typer.Exit(code=1)
 
-    indices = [int(p.strip()) for p in pages.split(",")]
-    with console.status("[bold green]Extracting pages..."):
-        organization.extract_pages(input_path, indices, output)
-    console.print(f"[bold green]Extracted pages {pages} to {output}[/bold green]")
+    try:
+        max_pages = utils.get_page_count(input_path)
+        indices = utils.parse_page_intervals(pages, max_pages)
+        if not indices:
+            console.print("[bold yellow]No pages selected for extraction.[/bold yellow]")
+            return
+
+        with console.status("[bold green]Extracting pages..."):
+            organization.extract_pages(input_path, indices, output)
+        console.print(f"[bold green]Extracted {len(indices)} pages to {output}[/bold green]")
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise typer.Exit(code=1)
 
 @app.command()
 def sort(
     input_path: Path = typer.Argument(..., help="Input PDF file."),
     order: str = typer.Option(
-        ..., "--order", "-r", help="New page order (e.g., '2,0,1')."
+        ..., "--order", "-r", help="New page order intervals (e.g., '2,0,1' or '5-10, 1-4')."
     ),
     output: Path = typer.Option(..., "--output", "-o", help="Output PDF file.")
 ) -> None:
@@ -113,10 +132,19 @@ def sort(
         console.print(f"[bold red]Error: File '{input_path}' does not exist.[/bold red]")
         raise typer.Exit(code=1)
 
-    indices = [int(p.strip()) for p in order.split(",")]
-    with console.status("[bold green]Sorting pages..."):
-        organization.sort_pages(input_path, indices, output)
-    console.print(f"[bold green]Sorted pages saved to {output}[/bold green]")
+    try:
+        max_pages = utils.get_page_count(input_path)
+        indices = utils.parse_page_intervals(order, max_pages, sort_and_deduplicate=False)
+        if not indices:
+            console.print("[bold yellow]No order specified.[/bold yellow]")
+            return
+
+        with console.status("[bold green]Sorting pages..."):
+            organization.sort_pages(input_path, indices, output)
+        console.print(f"[bold green]Sorted pages saved to {output}[/bold green]")
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise typer.Exit(code=1)
 
 @app.command()
 def nup(
