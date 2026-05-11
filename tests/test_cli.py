@@ -22,7 +22,7 @@ def test_cli_split(sample_pdf: Path, tmp_path: Path):
 
 def test_cli_delete(sample_pdf: Path, tmp_path: Path):
     output = tmp_path / "cli_deleted.pdf"
-    result = runner.invoke(app, ["delete", str(sample_pdf), "--pages", "0", "--output", str(output)])
+    result = runner.invoke(app, ["delete", str(sample_pdf), "--pages", "1", "--output", str(output)])
     assert result.exit_code == 0
     with fitz.open(output) as doc:
         assert len(doc) == 2
@@ -55,7 +55,7 @@ def test_cli_to_pdf_directory(tmp_path: Path):
 
 def test_cli_sort(sample_pdf: Path, tmp_path: Path):
     output = tmp_path / "cli_sorted.pdf"
-    result = runner.invoke(app, ["sort", str(sample_pdf), "--order", "2,1,0", "--output", str(output)])
+    result = runner.invoke(app, ["sort", str(sample_pdf), "--order", "3,2,1", "--output", str(output)])
     assert result.exit_code == 0
     with fitz.open(output) as doc:
         assert doc[0].get_text().strip() == "Page 3"
