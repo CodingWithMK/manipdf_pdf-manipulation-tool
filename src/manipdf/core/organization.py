@@ -49,6 +49,48 @@ def extract_pages(input_path: Path, page_indices: list[int], output_path: Path) 
         doc.select(page_indices)
         doc.save(output_path)
 
+
+def extract_pages_as_separate_pdfs(
+    input_path: Path,
+    page_indices: list[int],
+    output_dir: Path,
+    base_name: str | None = None
+) -> list[Path]:
+    """
+    Extract specified pages as individual PDF files.
+
+    Args:
+        input_path: Source PDF file
+        page_indices: List of 0-indexed page numbers to extract
+        output_dir: Directory where individual PDFs will be saved
+        base_name: Optional base name for files (defaults to input file stem)
+
+    Returns:
+        List of generated file paths
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if base_name is None:
+        base_name = input_path.stem
+
+    generated_files = []
+
+    with fitz.open(input_path) as doc:
+        for idx, page_idx in enumerate(page_indices):
+            if page_idx < 0 or page_idx >= len(doc):
+                continue
+
+            new_doc = fitz.open()
+            new_doc.insert_pdf(doc, from_page=page_idx, to_page=page_idx)
+
+            page_number = page_idx + 1
+            out_file = output_dir / f"{base_name}_p{page_number:03d}.pdf"
+            new_doc.save(out_file)
+            new_doc.close()
+            generated_files.append(out_file)
+
+    return generated_files
+
 def sort_pages(input_path: Path, order: list[int], output_path: Path) -> None:
     """Sort pages based on a list of indices."""
     with fitz.open(input_path) as doc:

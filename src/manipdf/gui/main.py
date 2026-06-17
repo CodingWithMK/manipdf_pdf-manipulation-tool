@@ -468,6 +468,18 @@ class SelectiveExtractTab(ToolTab):
         self.intervals_input.setPlaceholderText("Enter ranges or page numbers...")
         self.intervals_input.textChanged.connect(self.validate_input)
         input_layout.addWidget(self.intervals_input)
+        
+        # Separate pages checkbox
+        self.separate_pages_checkbox = QCheckBox(
+            "Extract each page as separate PDF file\n"
+            "(Creates individual files named: originalname_p001.pdf, originalname_p002.pdf, ...)"
+        )
+        self.separate_pages_checkbox.setToolTip(
+            "When enabled, each selected page is saved as an individual PDF file "
+            "inside a folder you choose. When disabled (default), all pages are "
+            "combined into a single PDF."
+        )
+        input_layout.addWidget(self.separate_pages_checkbox)
         self.layout.addLayout(input_layout)
         
         self.action_btn = QPushButton("Extract Selected Pages")
@@ -518,10 +530,25 @@ class SelectiveExtractTab(ToolTab):
             self.parent_panel.show_toast(str(e), "error")
             return
 
-        output, _ = QFileDialog.getSaveFileName(self, "Save Extracted PDF", "extracted.pdf", "PDF Files (*.pdf)")
-        if not output: return
-        
-        self.run_task(self.action_btn, "Extracting...", organization.extract_pages, self.file_path, indices, Path(output), gui_context={'out': output, 'mode': 'extracting'})
+        if self.separate_pages_checkbox.isChecked():
+            output_dir = QFileDialog.getExistingDirectory(self, "Select Output Folder")
+            if not output_dir: return
+            
+            self.run_task(
+                self.action_btn, 
+                "Extracting as separate PDFs...", 
+                organization.extract_pages_as_separate_pdfs,
+                self.file_path, 
+                indices, 
+                Path(output_dir),
+                self.file_path.stem,
+                gui_context={'out': output_dir, 'mode': 'extracting_separate', 'count': len(indices)}
+            )
+        else:
+            output, _ = QFileDialog.getSaveFileName(self, "Save Extracted PDF", "extracted.pdf", "PDF Files (*.pdf)")
+            if not output: return
+            
+            self.run_task(self.action_btn, "Extracting...", organization.extract_pages, self.file_path, indices, Path(output), gui_context={'out': output, 'mode': 'extracting'})
 
     def on_task_success(self, result):
         mode = self._task_context.get('mode')
@@ -529,6 +556,9 @@ class SelectiveExtractTab(ToolTab):
             self.display_thumbnails(result)
         elif mode == 'extracting':
             self.parent_panel.show_toast(f"Pages extracted successfully to:\n{self._task_context['out']}")
+        elif mode == 'extracting_separate':
+            count = self._task_context.get('count', len(result) if result else 0)
+            self.parent_panel.show_toast(f"Extracted {count} pages as separate PDFs to:\n{self._task_context['out']}")
 
     def display_thumbnails(self, thumbnails_data):
         self.clear_viewer()

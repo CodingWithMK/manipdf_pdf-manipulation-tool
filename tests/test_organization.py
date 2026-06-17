@@ -5,6 +5,7 @@ import fitz
 from manipdf.core.organization import (
     delete_pages,
     extract_pages,
+    extract_pages_as_separate_pdfs,
     merge_pdfs,
     rotate_pages,
     sort_pages,
@@ -73,3 +74,50 @@ def test_overlay_pdf(sample_pdf: Path, tmp_path: Path) -> None:
     assert output.exists()
     with fitz.open(output) as doc:
         assert len(doc) == 3
+
+
+def test_extract_pages_as_separate_pdfs(sample_pdf: Path, tmp_path: Path) -> None:
+    output_dir = tmp_path / "separate"
+    generated = extract_pages_as_separate_pdfs(sample_pdf, [0, 2], output_dir, "testdoc")
+    assert len(generated) == 2
+    assert all(p.exists() for p in generated)
+    assert generated[0].name == "testdoc_p001.pdf"
+    assert generated[1].name == "testdoc_p003.pdf"
+
+    with fitz.open(generated[0]) as doc:
+        assert len(doc) == 1
+        assert doc[0].get_text().strip() == "Page 1"
+    with fitz.open(generated[1]) as doc:
+        assert len(doc) == 1
+        assert doc[0].get_text().strip() == "Page 3"
+
+
+def test_extract_pages_as_separate_pdfs_default_base_name(sample_pdf: Path, tmp_path: Path) -> None:
+    output_dir = tmp_path / "separate2"
+    generated = extract_pages_as_separate_pdfs(sample_pdf, [0, 1], output_dir)
+    assert len(generated) == 2
+    assert generated[0].name.startswith("sample_")
+    assert generated[0].name.endswith("_p001.pdf")
+    assert generated[1].name.endswith("_p002.pdf")
+
+
+def test_extract_pages_as_separate_pdfs_empty_indices(sample_pdf: Path, tmp_path: Path) -> None:
+    output_dir = tmp_path / "separate3"
+    generated = extract_pages_as_separate_pdfs(sample_pdf, [], output_dir, "testdoc")
+    assert len(generated) == 0
+
+
+def test_extract_pages_as_separate_pdfs_invalid_indices(sample_pdf: Path, tmp_path: Path) -> None:
+    output_dir = tmp_path / "separate4"
+    generated = extract_pages_as_separate_pdfs(sample_pdf, [0, 99, 1], output_dir, "testdoc")
+    assert len(generated) == 2
+    assert generated[0].name == "testdoc_p001.pdf"
+    assert generated[1].name == "testdoc_p002.pdf"
+
+
+def test_extract_pages_as_separate_pdfs_creates_output_dir(sample_pdf: Path, tmp_path: Path) -> None:
+    output_dir = tmp_path / "nonexistent" / "nested" / "dir"
+    generated = extract_pages_as_separate_pdfs(sample_pdf, [0], output_dir, "testdoc")
+    assert len(generated) == 1
+    assert output_dir.exists()
+    assert generated[0].parent == output_dir

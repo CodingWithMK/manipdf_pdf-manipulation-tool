@@ -5,7 +5,7 @@
 ## 🌟 Key Features
 
 ### ✅ Currently Available (Core, CLI & GUI)
-- **Organization**: Merge, Split, Delete, Rotate, Extract, Sort, N-up (4-on-1, etc.), and Overlay (Stamping).
+- **Organization**: Merge, Split, Delete, Rotate, Extract (single or separate PDFs per page), Sort, N-up (4-on-1, etc.), and Overlay (Stamping).
 - **Security**: AES-256 Encryption, Decryption, Text Redaction (Black-boxing), and Text Watermarking.
 - **Modification**: Find & Replace Text, Page Numbers, and PDF Compression.
 - **Conversions**: 
@@ -71,6 +71,12 @@ uv run manipdf number input.pdf --output numbered.pdf
 **Find and Replace Text:**
 ```bash
 uv run manipdf edit-text input.pdf --search "Old Company" --replace "New Company" --output updated.pdf
+```
+
+**Extract Pages as Separate PDFs:**
+```bash
+# Extract pages 1-3 as individual PDF files in a folder
+uv run manipdf extract input.pdf --pages "1-3" --extract-as-separate --output-dir ./output_folder
 ```
 
 **Convert Images to PDF:**

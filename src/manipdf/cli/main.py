@@ -98,9 +98,14 @@ def extract(
     pages: str = typer.Option(
         ..., "--pages", "-p", help="Page intervals to extract (e.g., '1-5, 8, 11-13')."
     ),
-    output: Path = typer.Option(..., "--output", "-o", help="Output PDF file.")
+    output: Path = typer.Option(None, "--output", "-o", help="Output PDF file (required when --extract-as-separate is not used)."),
+    output_dir: Path = typer.Option(None, "--output-dir", "-d", help="Output directory for separate PDF files (required when --extract-as-separate is used)."),
+    extract_as_separate: bool = typer.Option(
+        False, "--extract-as-separate", "-s", 
+        help="Extract each page as a separate PDF file in a folder"
+    ),
 ) -> None:
-    """Extract specific pages into a new PDF."""
+    """Extract specific pages into a new PDF or as separate PDF files."""
     if not input_path.exists():
         console.print(f"[bold red]Error: File '{input_path}' does not exist.[/bold red]")
         raise typer.Exit(code=1)
@@ -112,9 +117,22 @@ def extract(
             console.print("[bold yellow]No pages selected for extraction.[/bold yellow]")
             return
 
-        with console.status("[bold green]Extracting pages..."):
-            organization.extract_pages(input_path, indices, output)
-        console.print(f"[bold green]Extracted {len(indices)} pages to {output}[/bold green]")
+        if extract_as_separate:
+            if output_dir is None:
+                console.print("[bold red]Error: --output-dir is required when using --extract-as-separate[/bold red]")
+                raise typer.Exit(code=1)
+            with console.status("[bold green]Extracting pages as separate PDFs..."):
+                generated = organization.extract_pages_as_separate_pdfs(
+                    input_path, indices, output_dir, input_path.stem
+                )
+            console.print(f"[bold green]Extracted {len(generated)} pages as separate PDFs to {output_dir}[/bold green]")
+        else:
+            if output is None:
+                console.print("[bold red]Error: --output is required when not using --extract-as-separate[/bold red]")
+                raise typer.Exit(code=1)
+            with console.status("[bold green]Extracting pages..."):
+                organization.extract_pages(input_path, indices, output)
+            console.print(f"[bold green]Extracted {len(indices)} pages to {output}[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
         raise typer.Exit(code=1)

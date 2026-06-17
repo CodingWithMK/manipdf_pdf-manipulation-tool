@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-06-17
+
+### Added
+- **Extract Pages as Separate PDFs**: New feature in both CLI and GUI to extract specified pages as individual PDF files (one per page) with automatic zero-padded naming (e.g., `document_p001.pdf`, `document_p002.pdf`).
+- **CLI**: Added `--extract-as-separate` / `-s` flag and `--output-dir` / `-d` option to `extract` command.
+- **GUI**: Added checkbox "Extract each page as separate PDF file" with descriptive tooltip in the Selective Extract tab; prompts for output folder when enabled.
+- **Core**: New `extract_pages_as_separate_pdfs()` function in `organization.py organization module with comprehensive test coverage (5 test cases including edge cases).
+
+### Changed
+- Updated version to 0.2.0 across all configuration files.
+
 ## [0.1.0] - 2026-04-13
 
 ### Added
